@@ -68,7 +68,7 @@ public class SocketHandler implements Runnable{
                         String parti[]= inp.split(" ",2);
 
                         synchronized(lock){
-                            if(parti[0].toLowerCase()=="gold" && parti[0].toLowerCase()=="pit" && parti[0].toLowerCase()=="parterre"){
+                            if(parti[0].toLowerCase().equals("gold") && parti[0].toLowerCase().equals("pit") && parti[0].toLowerCase().equals("parterre")){
                                 if(parti.length== 1)
                                     parti[1]="1";
 
