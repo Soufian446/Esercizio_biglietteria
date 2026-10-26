@@ -10,8 +10,9 @@ import java.util.Map;
 
 public class SocketHandler implements Runnable{
     private final Socket s;
-    Map<String,Integer> disponibilita = new HashMap<>();
-    ArrayList<String> user= new ArrayList<>();
+    private Map<String,Integer> disponibilita = new HashMap<>();
+    private ArrayList<String> user= new ArrayList<>();
+    private final Object lock = new Object();
 
 
     public SocketHandler(Socket so){
@@ -66,24 +67,26 @@ public class SocketHandler implements Runnable{
                         String inp=in.readLine();
                         String parti[]= inp.split(" ",2);
 
-                        if(parti[0].toLowerCase()=="gold" && parti[0].toLowerCase()=="pit" && parti[0].toLowerCase()=="parterre"){
-                            if(parti.length== 1)
-                                parti[1]="1";
+                        synchronized(lock){
+                            if(parti[0].toLowerCase()=="gold" && parti[0].toLowerCase()=="pit" && parti[0].toLowerCase()=="parterre"){
+                                if(parti.length== 1)
+                                    parti[1]="1";
 
-                            try {
-                                if(disponibilita.get(parti[0])>=Integer.parseInt(parti[1])){
-                                    disponibilita.put(parti[0],(disponibilita.get(parti[0])-Integer.parseInt(parti[1])));
-                                    out.println("Hai acquistato la tipologia: "+parti[0]+" ed hai preso: "+parti[1]+" biglietti");
+                                try {
+                                    if(disponibilita.get(parti[0])>=Integer.parseInt(parti[1])){
+                                        disponibilita.put(parti[0],(disponibilita.get(parti[0])-Integer.parseInt(parti[1])));
+                                        out.println("Hai acquistato la tipologia: "+parti[0]+" ed hai preso: "+parti[1]+" biglietti");
 
-                                }else{
-                                    out.println("KO --> Non sono rimasti abbastanza biglietti");
+                                    }else{
+                                        out.println("KO --> Non sono rimasti abbastanza biglietti");
+                                    }
+                                } catch (Exception e) {
+                                    out.println("ERR SYNTAX --> Tentativo di acquisto di quantità non numerica");
                                 }
-                            } catch (Exception e) {
-                                out.println("ERR SYNTAX --> Tentativo di acquisto di quantità non numerica");
+                                
+                            }else{
+                                out.println("ERR UNKNOWNTYPE --> Tipo non ammesso");
                             }
-                            
-                        }else{
-                            out.println("ERR UNKNOWNTYPE --> Tipo non ammesso");
                         }
 
                     case "QUIT":
