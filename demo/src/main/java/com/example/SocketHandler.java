@@ -5,50 +5,55 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+
 
 public class SocketHandler implements Runnable{
     private final Socket s;
-    private Map<String,Integer> disponibilita = new HashMap<>();
-    private ArrayList<String> user= new ArrayList<>();
-    private final Object lock = new Object();
+    private Biglietti b;
+    private static ArrayList<String> user= new ArrayList<>();
 
 
-    public SocketHandler(Socket so){
+    public SocketHandler(Socket so,Biglietti b){
         s=so;
+        this.b=b;
 
-        disponibilita.put("Gold", 10);
-        disponibilita.put("Pit", 30);
-        disponibilita.put("Parterre", 60);
+    }
+
+    public synchronized boolean login(BufferedReader in, PrintWriter out){
+        try{
+            String nome;
+            boolean var=true;
+            while (var) {
+                out.println("Inserisci il tuo nome");
+                nome=in.readLine();
+                if (user.contains(nome)){
+                    out.println("ERR DUPLICATENAME --> Nome già in uso");
+                }else{
+                    user.add(nome);
+                    var=false;
+                    return true;
+                }
+            }
+        }catch(Exception e){
+            System.out.println("Errore");
+        }
+        return false;
     }
 
     @Override
     public void run(){
-        String nome;
-        boolean var=true;
         String scelta;
+        String quantita;
         try(
             BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
             PrintWriter out = new PrintWriter(s.getOutputStream(), true);
             Socket autoCloseablSocket = s;
         ){
+            boolean log=login(in,out);
+            if (!log) {
+                return; 
+            }
             out.println("Welcome");
-
-            do{
-                out.println("Login");
-                nome=in.readLine();
-                
-
-                if(user.contains(nome)){
-                    out.print("USERINUSE");
-                }else{
-                    out.print("OK");
-                    var=false;
-                }
-
-            }while(var);
-            user.add(nome);
 
             while(true){
                 scelta=in.readLine();
@@ -56,9 +61,8 @@ public class SocketHandler implements Runnable{
                 switch (scelta) {
                     case "N":
                         String str="";
-                        for(String s : disponibilita.keySet()){
-                            str += s +": "+disponibilita.get(s)+"\n";
-                        }
+                            str =  "gold"+": "+b.getGold()+"\n"+"panterre"+": "+b.getPanterre()+"\n"+"pit"+": "+b.getPit()+"\n";
+                        
                         out.println(str);
                         str="";
                         break;
@@ -67,15 +71,17 @@ public class SocketHandler implements Runnable{
                         String inp=in.readLine();
                         String parti[]= inp.split(" ",2);
 
-                        synchronized(lock){
-                            if(parti[0].toLowerCase().equals("gold") && parti[0].toLowerCase().equals("pit") && parti[0].toLowerCase().equals("parterre")){
-                                if(parti.length== 1)
-                                    parti[1]="1";
+                            if(parti[0].toLowerCase().equals("gold") || parti[0].toLowerCase().equals("pit") || parti[0].toLowerCase().equals("panterre")){
+                                if (parti.length == 1) {
+                                    quantita = "1";
+                                } else {
+                                    quantita = parti[1];
+                                }
 
                                 try {
-                                    if(disponibilita.get(parti[0])>=Integer.parseInt(parti[1])){
-                                        disponibilita.put(parti[0],(disponibilita.get(parti[0])-Integer.parseInt(parti[1])));
-                                        out.println("Hai acquistato la tipologia: "+parti[0]+" ed hai preso: "+parti[1]+" biglietti");
+                                    if(b.controllaBiglietti(parti[0], Integer.parseInt(quantita))){
+                                        b.acquistaBiglietto(parti[0], Integer.parseInt(quantita));
+                                        out.println("Hai acquistato la tipologia: "+parti[0]+" ed hai preso: "+quantita+" biglietti");
 
                                     }else{
                                         out.println("KO --> Non sono rimasti abbastanza biglietti");
@@ -87,7 +93,8 @@ public class SocketHandler implements Runnable{
                             }else{
                                 out.println("ERR UNKNOWNTYPE --> Tipo non ammesso");
                             }
-                        }
+                        
+                        break;
 
                     case "QUIT":
                         return;

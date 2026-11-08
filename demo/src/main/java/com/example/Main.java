@@ -10,11 +10,12 @@ public class Main {
     private static final ExecutorService threadPool = Executors.newFixedThreadPool(10);
         
     public static void main(String[] args) {
+        Biglietti b = new Biglietti(60, 30, 10);
         try(ServerSocket ss = new ServerSocket(PORT)){
             while(true){
                 Socket s = ss.accept();
                 System.out.println("Connessione riuscita");
-                threadPool.execute(new SocketHandler(s));
+                threadPool.execute(new SocketHandler(s,b));
             }
         } catch(Exception e){
             System.err.println("Errore nel server");
